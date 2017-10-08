@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.mario.minesweeper.DisplayGameActivity">
+
+    <TableLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:stretchColumns="0,2"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <TableRow
+            android:id="@+id/titleRow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/numberOfBombs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_column="0"
+                android:text="@string/number_of_bombs"
+                android:textAlignment="textEnd"
+                android:textSize="30sp" />
+
+            <Button
+                android:id="@+id/smileButton"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_column="1"
+                android:layout_marginEnd="30dp"
+                android:layout_marginStart="30dp"
+                android:background="@mipmap/ic_launcher_round"
+                android:elevation="0dp" />
+
+            <TextView
+                android:id="@+id/timeElapsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_column="2"
+                android:text="@string/time_passed"
+                android:textSize="30sp" />
+
+        </TableRow>
+
+        <TableRow
+            android:id="@+id/spacing"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="match_parent"
+                android:layout_height="50dp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <TableLayout
+                android:id="@+id/minefield"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_span="3"
+                android:stretchColumns="*">
+
+            </TableLayout>
+        </TableRow>
+
+    </TableLayout>
+</android.support.constraint.ConstraintLayout>
