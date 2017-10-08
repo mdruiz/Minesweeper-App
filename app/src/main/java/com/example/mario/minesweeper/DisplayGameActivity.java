@@ -84,18 +84,27 @@ public class DisplayGameActivity extends Activity {
         @Override
         public void onClick(View v) {
             Block button = (Block) v;
-            makeToast(v.getId());
+            if(button.isFlag()){
+                return;
+            }
             v.setBackgroundResource(R.drawable.block_uncovered);
-
-            int value = v.getId();
-            int totalColumns = mineField.getBlocks()[0].length;
-            int row = value/totalColumns;
-            int col = value%totalColumns;
-
-            mineField.setMineField(row,col);
-
-            String val = Integer.toString(button.getValue());
-            button.setText(val);
+            //if minefield has not beeen set, set it
+            if(!mineField.areMinesSet()) {
+                int value = v.getId();
+                int totalColumns = mineField.getBlocks()[0].length;
+                int row = value / totalColumns;
+                int col = value % totalColumns;
+                mineField.setMineField(row, col);
+            }
+            //if mine, print 'M' instead of value
+            if(button.isMine()){
+                button.setText("M");
+                makeToast("You Lose!");
+            }
+            else {
+                String val = Integer.toString(button.getValue());
+                button.setText(val);
+            }
         }
     };
     //onLongClick listener for blocks
@@ -119,6 +128,10 @@ public class DisplayGameActivity extends Activity {
         int row = value/totalColumns;
         int col = value%totalColumns;
         Toast.makeText(this,"Button ("+row+","+col+") clicked!",Toast.LENGTH_SHORT).show();
+    }
+
+    public void makeToast(String str){
+        Toast.makeText(this,str,Toast.LENGTH_SHORT).show();
     }
 
 }

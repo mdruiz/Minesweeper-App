@@ -11,14 +11,20 @@ import java.util.Random;
 public class MineField {
     private Block[][] blocks;
     private int bombCount;
+    private boolean minesSet;
 
     public MineField(int rows, int columns, int bombs){
         this.blocks = new Block[rows][columns];
         this.bombCount = bombs;
+        this.minesSet = false;
     }
 
     public Block[][] getBlocks(){
         return blocks;
+    }
+
+    public boolean areMinesSet(){
+        return this.minesSet;
     }
 
     public void setMineField(int clickedRow, int clickedCol){
@@ -51,7 +57,7 @@ public class MineField {
                 nearbyMines = 0;
                 for(int i = -1; i < 2; i++) {
                     for (int j = -1; j < 2; j++) {
-                        if(curRow+i > 0 && curRow+i < rows && curCol+j > 0 && curCol+j < columns){
+                        if(curRow+i >= 0 && curRow+i < rows && curCol+j >= 0 && curCol+j < columns){
                             if(blocks[curRow+i][curCol+j].isMine()){
                                 nearbyMines++;
                             }
@@ -61,7 +67,7 @@ public class MineField {
                 blocks[curRow][curCol].setValue(nearbyMines);
             }
         }
-
+        minesSet = true;
     }
 
 }
