@@ -87,23 +87,23 @@ public class DisplayGameActivity extends Activity {
             if(button.isFlag()){
                 return;
             }
-            v.setBackgroundResource(R.drawable.block_uncovered);
+            int value = v.getId();
+            int totalColumns = mineField.getBlocks()[0].length;
+            int row = value / totalColumns;
+            int col = value % totalColumns;
+
             //if minefield has not beeen set, set it
             if(!mineField.areMinesSet()) {
-                int value = v.getId();
-                int totalColumns = mineField.getBlocks()[0].length;
-                int row = value / totalColumns;
-                int col = value % totalColumns;
                 mineField.setMineField(row, col);
             }
             //if mine, print 'M' instead of value
             if(button.isMine()){
+                v.setBackgroundResource(R.drawable.block_uncovered);
                 button.setText("M");
                 makeToast("You Lose!");
             }
             else {
-                String val = Integer.toString(button.getValue());
-                button.setText(val);
+                mineField.rippleUncover(row,col);
             }
         }
     };
