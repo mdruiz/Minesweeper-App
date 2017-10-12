@@ -98,7 +98,7 @@ public class DisplayGameActivity extends Activity {
             int row = value / totalColumns;
             int col = value % totalColumns;
 
-            //if minefield has not beeen set, set it
+            //if minefield has not been set, set it
             if(!mineField.areMinesSet()) {
                 mineField.setMineField(row, col);
 //                printMinefield();
@@ -110,8 +110,13 @@ public class DisplayGameActivity extends Activity {
                 button.uncover();
                 makeToast("You Lose!");
             }
+            else if(!button.isCovered()){
+                mineField.uncoverSurrounding(row,col);
+                isGameWon();
+            }
             else {
                 mineField.rippleUncover(row,col);
+                isGameWon();
             }
         }
     };
@@ -135,6 +140,14 @@ public class DisplayGameActivity extends Activity {
                     mineField.decreaseFlagCount();
                 }
                 updateNumberOfBombs();
+            }
+            else{
+                int value = v.getId();
+                int totalColumns = mineField.getBlocks()[0].length;
+                int row = value / totalColumns;
+                int col = value % totalColumns;
+                mineField.uncoverSurrounding(row,col);
+                isGameWon();
             }
             return true;
         }
@@ -172,25 +185,26 @@ public class DisplayGameActivity extends Activity {
     public void updateNumberOfBombs(){
         int bombs = mineField.getBombCount();
         int flags = mineField.getFlagCount();
-        Log.e("1","bombs:"+bombs);
-        Log.e("2","flags:"+flags);
         String str;
-        if((bombs - flags) < 0){
+        if(bombs - flags < 0){
             str = "000";
-            Log.e("3","<0");
         }
-        else if((bombs - flags) < 10){
-            str = "00" + (bombs-flags);
-            Log.e("3","<10");
-            Log.e("3",str);
+        else {
+            str = "00" + (bombs - flags);
         }
-        else{
-            str = "0" + (bombs-flags);
-            Log.e("3",">=10");
-        }
+        int len = str.length();
         TextView text = (TextView) findViewById(R.id.numberOfBombs);
-        text.setText(str);
+        text.setText(str.substring(len-3,len));
     }
 
-    
+    public void isGameWon(){
+        //if all blocks except for mines are uncovered, You Win!
+        if(mineField.getCoveredCount() == mineField.getBombCount()){
+            makeToast("YOU WIN!!!");
+        }
+        String temp = Integer.toString(mineField.getCoveredCount());
+        Log.e("22",temp);
+
+    }
+
 }

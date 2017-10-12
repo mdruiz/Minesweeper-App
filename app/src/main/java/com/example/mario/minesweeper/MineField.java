@@ -11,14 +11,14 @@ import java.util.Random;
 public class MineField {
     private Block[][] blocks;
     private int bombCount;
-    private int uncoveredCount;
+    private int coveredCount;
     private int flagCount;
     private boolean minesSet;
 
     public MineField(int rows, int columns, int bombs){
         this.blocks = new Block[rows][columns];
         this.bombCount = bombs;
-        this.uncoveredCount = rows*columns;
+        this.coveredCount = rows*columns;
         int flagCount = 0;
         this.minesSet = false;
     }
@@ -26,8 +26,8 @@ public class MineField {
     public Block[][] getBlocks(){
         return blocks;
     }
-    public int getUncoveredCount(){
-        return  this.uncoveredCount;
+    public int getCoveredCount(){
+        return  this.coveredCount;
     }
     public int getFlagCount(){
         return this.flagCount;
@@ -39,6 +39,7 @@ public class MineField {
     }
 
     public void setFlagCount(int flags){this.flagCount = flags;}
+    public void decreaseCoveredCount(){this.coveredCount--;}
     public void increaseFlagCount(){this.flagCount++;}
     public void decreaseFlagCount(){this.flagCount--;}
 
@@ -88,10 +89,15 @@ public class MineField {
 
     public void rippleUncover(int row, int column){
         Block block = blocks[row][column];
+        //already uncovered
+        if(!block.isCovered()){
+            return;
+        }
         block.setBackgroundResource(R.drawable.block_uncovered);
         String val = Integer.toString(block.getValue());
         block.setText(val);
         block.uncover();
+        decreaseCoveredCount();
 
         if(blocks[row][column].getValue() == 0){
             int totalRows = blocks.length;
@@ -104,6 +110,46 @@ public class MineField {
                             continue;
                         }
                         rippleUncover((row+i),(column+j));
+                    }
+                }
+            }
+        }
+
+    }
+
+    public void uncoverSurrounding(int row, int column){
+        int totalRows = blocks.length;
+        int totalColumns = blocks[0].length;
+        int nearbyFlags = 0;
+
+        //count surrounding flags
+        for(int i = -1; i < 2; i++) {
+            for (int j = -1; j < 2; j++) {
+                if(row+i >= 0 && row+i < totalRows && column+j >= 0 && column+j < totalColumns){
+                    if(blocks[row+i][column+j].isFlag()){
+                        nearbyFlags++;
+                    }
+                }
+            }
+        }
+
+        if(blocks[row][column].getValue() <= nearbyFlags) {
+            boolean mineUncovered = false;
+            for (int i = -1; i < 2; i++) {
+                for (int j = -1; j < 2; j++) {
+                    if (row + i >= 0 && row + i < totalRows && column + j >= 0 && column + j < totalColumns) {
+                        if (!blocks[row + i][column + j].isCovered() || blocks[row + i][column + j].isFlag()) {
+                            continue;
+                        }
+                        if(blocks[row+i][column+j].isMine()){
+                            mineUncovered = true;
+                            Block block = blocks[row+i][column+j];
+                            block.setBackgroundResource(R.drawable.block_uncovered);
+                            block.setText("M");
+                            block.uncover();
+                            continue;
+                        }
+                        rippleUncover((row + i), (column + j));
                     }
                 }
             }
