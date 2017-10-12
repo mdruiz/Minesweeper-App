@@ -16,6 +16,7 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class DisplayGameActivity extends Activity {
@@ -34,9 +35,14 @@ public class DisplayGameActivity extends Activity {
         setContentView(R.layout.activity_display_game);
 
         vibe = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE) ;
-
         board = (TableLayout) findViewById(R.id.minefield);
-        createMinefieldGrid(8,8,10);
+
+        int rows = 8;
+        int columns = 8;
+        int bombs = 10;
+
+        createMinefieldGrid(rows,columns,bombs);
+        updateNumberOfBombs();
 
     }
 
@@ -95,11 +101,13 @@ public class DisplayGameActivity extends Activity {
             //if minefield has not beeen set, set it
             if(!mineField.areMinesSet()) {
                 mineField.setMineField(row, col);
+//                printMinefield();
             }
             //if mine, print 'M' instead of value
             if(button.isMine()){
                 v.setBackgroundResource(R.drawable.block_uncovered);
                 button.setText("M");
+                button.uncover();
                 makeToast("You Lose!");
             }
             else {
@@ -118,7 +126,16 @@ public class DisplayGameActivity extends Activity {
             });
 //            startVibrate(500);
             Block button = (Block) v;
-            button.switchFlag();
+            if(button.isCovered()) {
+                button.switchFlag();
+                if(button.isFlag()){
+                    mineField.increaseFlagCount();
+                }
+                else{
+                    mineField.decreaseFlagCount();
+                }
+                updateNumberOfBombs();
+            }
             return true;
         }
     };
@@ -134,4 +151,46 @@ public class DisplayGameActivity extends Activity {
         Toast.makeText(this,str,Toast.LENGTH_SHORT).show();
     }
 
+    //debbugging purposes
+    public void printMinefield(){
+        StringBuilder row = new StringBuilder();
+        Block[][] blocks = mineField.getBlocks();
+        for(int i = 0; i < blocks.length; i++){
+            for(int j = 0; j < blocks[0].length; j++){
+                if(blocks[i][j].isMine()){
+                    row.append("M");
+                }
+                else {
+                    row.append(blocks[i][j].getValue());
+                }
+            }
+            Log.e(Integer.toString(i),row.toString());
+            row.setLength(0);
+        }
+    }
+
+    public void updateNumberOfBombs(){
+        int bombs = mineField.getBombCount();
+        int flags = mineField.getFlagCount();
+        Log.e("1","bombs:"+bombs);
+        Log.e("2","flags:"+flags);
+        String str;
+        if((bombs - flags) < 0){
+            str = "000";
+            Log.e("3","<0");
+        }
+        else if((bombs - flags) < 10){
+            str = "00" + (bombs-flags);
+            Log.e("3","<10");
+            Log.e("3",str);
+        }
+        else{
+            str = "0" + (bombs-flags);
+            Log.e("3",">=10");
+        }
+        TextView text = (TextView) findViewById(R.id.numberOfBombs);
+        text.setText(str);
+    }
+
+    
 }

@@ -32,10 +32,16 @@ public class MineField {
     public int getFlagCount(){
         return this.flagCount;
     }
+    public int getBombCount(){return this.bombCount;}
 
     public boolean areMinesSet(){
         return this.minesSet;
     }
+
+    public void setFlagCount(int flags){this.flagCount = flags;}
+    public void increaseFlagCount(){this.flagCount++;}
+    public void decreaseFlagCount(){this.flagCount--;}
+
 
     public void setMineField(int clickedRow, int clickedCol){
         Random rand = new Random();
@@ -94,7 +100,7 @@ public class MineField {
             for(int i = -1; i < 2; i++) {
                 for (int j = -1; j < 2; j++) {
                     if(row+i >= 0 && row+i < totalRows && column+j >= 0 && column+j < totalColumns){
-                        if(blocks[row+i][column+j].isMine() || !blocks[row+i][column+j].isCovered()){
+                        if(blocks[row+i][column+j].isMine() || !blocks[row+i][column+j].isCovered() || blocks[row+i][column+j].isFlag()){
                             continue;
                         }
                         rippleUncover((row+i),(column+j));
