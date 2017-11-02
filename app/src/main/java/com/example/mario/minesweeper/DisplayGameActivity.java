@@ -2,18 +2,18 @@ package com.example.mario.minesweeper;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Color;
+import android.content.Intent;
 import android.os.Handler;
 import android.os.Vibrator;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.GridLayout;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -26,31 +26,35 @@ public class DisplayGameActivity extends Activity {
     private int screenWidth;
     private int blockWidth;
     private int blockHeight;
-    private int blockPadding;
     private Vibrator vibe;
+    private TextView timerText;
+    private PopupWindow popupWindow;
+    private LayoutInflater layoutInflater;
+    private final int[] bombs = {1,12,18,25};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_game);
 
+        //get difficulty from previous activity
+        Intent intent = getIntent();
+        String message = intent.getStringExtra(MainMenu.EXTRA_MESSAGE);
+
         vibe = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE) ;
         board = (TableLayout) findViewById(R.id.minefield);
+        timerText = (TextView) findViewById(R.id.timerText);
 
-        int rows = 8;
-        int columns = 8;
-        int bombs = 10;
+        int rows = 12;
+        int columns = 10;
 
-        createMinefieldGrid(rows,columns,bombs);
+        createMinefieldGrid(rows,columns,bombs[Integer.parseInt(message)]);
         updateNumberOfBombs();
 
     }
 
     protected void createMinefieldGrid(int rows, int columns, int bombs){
-
         mineField = new MineField(rows,columns,bombs);
-
-        //Button[][] blocks = new Button[rows][columns];
 
         //get screen width
         DisplayMetrics display = new DisplayMetrics();
@@ -59,7 +63,6 @@ public class DisplayGameActivity extends Activity {
 
         blockWidth = screenWidth/ (columns);
         blockHeight = blockWidth;
-        blockPadding = blockWidth/2;
         int linearIndex = 0;
         Block[][] blocks = mineField.getBlocks();
 
@@ -67,12 +70,10 @@ public class DisplayGameActivity extends Activity {
         for(int i = 0; i < rows; i++){
             TableRow tableRow = new TableRow(this);
             tableRow.setLayoutParams(new TableRow.LayoutParams(blockWidth * columns, blockHeight * rows));
-//            tableRow.setLayoutParams(new TableRow.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,TableLayout.LayoutParams.MATCH_PARENT));
             for(int j = 0; j < columns; j++){
                 blocks[i][j] = new Block(this);
                 blocks[i][j].setLayoutParams(new TableRow.LayoutParams(blockWidth,blockHeight));
                 blocks[i][j].setBackgroundResource(R.drawable.block_covered);
-//                blocks[i][j].setPadding(blockPadding, blockPadding,blockPadding, blockPadding);
                 linearIndex = i * columns + j;
                 blocks[i][j].setId(linearIndex);
                 blocks[i][j].setOnClickListener(buttonClick);
@@ -90,7 +91,7 @@ public class DisplayGameActivity extends Activity {
         @Override
         public void onClick(View v) {
             Block button = (Block) v;
-            if(button.isFlag()){
+            if(button.isFlag() || !mineField.areMinesActive()){
                 return;
             }
             int value = v.getId();
@@ -100,18 +101,21 @@ public class DisplayGameActivity extends Activity {
 
             //if minefield has not been set, set it
             if(!mineField.areMinesSet()) {
+                startTimer();
                 mineField.setMineField(row, col);
-//                printMinefield();
             }
             //if mine, print 'M' instead of value
             if(button.isMine()){
-                v.setBackgroundResource(R.drawable.block_uncovered);
-                button.setText("M");
                 button.uncover();
-                makeToast("You Lose!");
+                stopTimer();
+                onLosePopup();
             }
             else if(!button.isCovered()){
-                mineField.uncoverSurrounding(row,col);
+                if(!mineField.uncoverSurrounding(row,col)){
+                    stopTimer();
+                    onLosePopup();
+                    return;
+                }
                 isGameWon();
             }
             else {
@@ -129,8 +133,10 @@ public class DisplayGameActivity extends Activity {
                     vibe.vibrate(50);
                 }
             });
-//            startVibrate(500);
             Block button = (Block) v;
+            if(!mineField.areMinesActive()){
+                return true;
+            }
             if(button.isCovered()) {
                 button.switchFlag();
                 if(button.isFlag()){
@@ -146,25 +152,22 @@ public class DisplayGameActivity extends Activity {
                 int totalColumns = mineField.getBlocks()[0].length;
                 int row = value / totalColumns;
                 int col = value % totalColumns;
-                mineField.uncoverSurrounding(row,col);
+                if(!mineField.uncoverSurrounding(row,col)){
+                    stopTimer();
+                    onLosePopup();
+                    return true;
+                }
                 isGameWon();
             }
             return true;
         }
     };
 
-    public void makeToast(int value){
-        int totalColumns = mineField.getBlocks()[0].length;
-        int row = value/totalColumns;
-        int col = value%totalColumns;
-        Toast.makeText(this,"Button ("+row+","+col+") clicked!",Toast.LENGTH_SHORT).show();
-    }
-
     public void makeToast(String str){
         Toast.makeText(this,str,Toast.LENGTH_SHORT).show();
     }
 
-    //debbugging purposes
+    //debugging purposes
     public void printMinefield(){
         StringBuilder row = new StringBuilder();
         Block[][] blocks = mineField.getBlocks();
@@ -200,11 +203,149 @@ public class DisplayGameActivity extends Activity {
     public void isGameWon(){
         //if all blocks except for mines are uncovered, You Win!
         if(mineField.getCoveredCount() == mineField.getBombCount()){
-            makeToast("YOU WIN!!!");
+            stopTimer();
+            onWinPopup();
         }
-        String temp = Integer.toString(mineField.getCoveredCount());
-        Log.e("22",temp);
+    }
 
+/////////////////////////////////// TIMER FUNCTIONALITY ///////////////////////////////////
+
+    private Handler timer = new Handler();
+    private int secondsPassed = 0;
+
+    public void startTimer() {
+        if (secondsPassed == 0)        {
+            timer.removeCallbacks(updateTimeElasped);
+            // tell timer to run call back after 1 second
+            timer.postDelayed(updateTimeElasped, 1000);
+        }
+    }
+
+    public void stopTimer() {
+        // disable call backs
+        timer.removeCallbacks(updateTimeElasped);
+    }
+
+    // timer call back when timer is ticked
+    private Runnable updateTimeElasped = new Runnable() {
+        public void run() {
+            long currentMilliseconds = System.currentTimeMillis();
+            ++secondsPassed;
+            String str = "000" + Integer.toString(secondsPassed);
+            int len = str.length();
+            timerText.setText(str.substring(len-3,len));
+
+            // add notification
+            timer.postAtTime(this, currentMilliseconds);
+            // notify to call back after 1 seconds
+            // basically to remain in the timer loop
+            timer.postDelayed(updateTimeElasped, 1000);
+        }
+    };
+
+/////////////////////////////////// POPUP FUNCTIONALITY ///////////////////////////////////
+
+    @Override
+    public void onBackPressed(){
+        //inflate layout for popup window
+        layoutInflater = (LayoutInflater) getApplicationContext().getSystemService(LAYOUT_INFLATER_SERVICE);
+        ViewGroup container = (ViewGroup) layoutInflater.inflate(R.layout.popup_window,null);
+
+        //create popup window
+        int width = LinearLayout.LayoutParams.MATCH_PARENT;
+        int height = LinearLayout.LayoutParams.MATCH_PARENT;
+        popupWindow = new PopupWindow(container,height,width,true);
+        popupWindow.showAtLocation(findViewById(R.id.gameContainer), Gravity.CENTER,0,0);
+
+        //OnClickListeners for popup buttons
+        View exit = container.findViewById(R.id.exitButton);
+        exit.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        View cancel = container.findViewById(R.id.cancelButton);
+        cancel.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                popupWindow.dismiss();
+            }
+        });
+
+    }
+
+    public void onWinPopup(){
+        //disable minefield
+        mineField.deactivateMines();
+
+        //inflate layout for popup window
+        layoutInflater = (LayoutInflater) getApplicationContext().getSystemService(LAYOUT_INFLATER_SERVICE);
+        ViewGroup container = (ViewGroup) layoutInflater.inflate(R.layout.win_popup,null);
+
+        //create popup window
+        int width = LinearLayout.LayoutParams.MATCH_PARENT;
+        int height = LinearLayout.LayoutParams.MATCH_PARENT;
+        popupWindow = new PopupWindow(container,height,width,true);
+        popupWindow.showAtLocation(findViewById(R.id.gameContainer), Gravity.CENTER,0,0);
+
+        int time = Integer.parseInt(timerText.getText().toString());
+        TextView timeString = (TextView) container.findViewById(R.id.winTime);
+        timeString.setText("Your time: "+time+" seconds");
+
+        //OnClickListeners for popup buttons
+        View again = container.findViewById(R.id.okButton);
+        again.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                Intent intent = getIntent();
+                finish();
+                startActivity(intent);
+            }
+        });
+
+        View cancel = container.findViewById(R.id.cancelButton);
+        cancel.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                popupWindow.dismiss();
+            }
+        });
+    }
+
+    public void onLosePopup(){
+        //disable minefield
+        mineField.deactivateMines();
+
+        //inflate layout for popup window
+        layoutInflater = (LayoutInflater) getApplicationContext().getSystemService(LAYOUT_INFLATER_SERVICE);
+        ViewGroup container = (ViewGroup) layoutInflater.inflate(R.layout.lose_popup,null);
+
+        //create popup window
+        int width = LinearLayout.LayoutParams.MATCH_PARENT;
+        int height = LinearLayout.LayoutParams.MATCH_PARENT;
+        popupWindow = new PopupWindow(container,height,width,true);
+        popupWindow.showAtLocation(findViewById(R.id.gameContainer), Gravity.CENTER,0,0);
+
+        //OnClickListeners for popup buttons
+        View again = container.findViewById(R.id.okButton);
+        again.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                Intent intent = getIntent();
+                finish();
+                startActivity(intent);
+            }
+        });
+
+        View cancel = container.findViewById(R.id.cancelButton);
+        cancel.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                popupWindow.dismiss();
+            }
+        });
     }
 
 }

@@ -1,7 +1,5 @@
 package com.example.mario.minesweeper;
 
-import android.widget.Button;
-
 import java.util.Random;
 
 /**
@@ -14,13 +12,15 @@ public class MineField {
     private int coveredCount;
     private int flagCount;
     private boolean minesSet;
+    private boolean minesActive;
 
     public MineField(int rows, int columns, int bombs){
         this.blocks = new Block[rows][columns];
         this.bombCount = bombs;
         this.coveredCount = rows*columns;
-        int flagCount = 0;
+        this.flagCount = 0;
         this.minesSet = false;
+        this.minesActive = true;
     }
 
     public Block[][] getBlocks(){
@@ -37,8 +37,9 @@ public class MineField {
     public boolean areMinesSet(){
         return this.minesSet;
     }
+    public boolean areMinesActive(){ return this.minesActive; }
 
-    public void setFlagCount(int flags){this.flagCount = flags;}
+    public void deactivateMines(){this.minesActive = false;}
     public void decreaseCoveredCount(){this.coveredCount--;}
     public void increaseFlagCount(){this.flagCount++;}
     public void decreaseFlagCount(){this.flagCount--;}
@@ -89,13 +90,10 @@ public class MineField {
 
     public void rippleUncover(int row, int column){
         Block block = blocks[row][column];
-        //already uncovered
-        if(!block.isCovered()){
+        //already uncovered or game lost
+        if(!block.isCovered() || !areMinesActive()){
             return;
         }
-        block.setBackgroundResource(R.drawable.block_uncovered);
-        String val = Integer.toString(block.getValue());
-        block.setText(val);
         block.uncover();
         decreaseCoveredCount();
 
@@ -117,10 +115,16 @@ public class MineField {
 
     }
 
-    public void uncoverSurrounding(int row, int column){
+    //returns false if mine was uncovered (game lost)
+    public boolean uncoverSurrounding(int row, int column){
         int totalRows = blocks.length;
         int totalColumns = blocks[0].length;
         int nearbyFlags = 0;
+        boolean mineUncovered = false;
+        //if game is already lost
+        if(!areMinesActive()){
+            return mineUncovered;
+        }
 
         //count surrounding flags
         for(int i = -1; i < 2; i++) {
@@ -134,7 +138,6 @@ public class MineField {
         }
 
         if(blocks[row][column].getValue() <= nearbyFlags) {
-            boolean mineUncovered = false;
             for (int i = -1; i < 2; i++) {
                 for (int j = -1; j < 2; j++) {
                     if (row + i >= 0 && row + i < totalRows && column + j >= 0 && column + j < totalColumns) {
@@ -144,8 +147,6 @@ public class MineField {
                         if(blocks[row+i][column+j].isMine()){
                             mineUncovered = true;
                             Block block = blocks[row+i][column+j];
-                            block.setBackgroundResource(R.drawable.block_uncovered);
-                            block.setText("M");
                             block.uncover();
                             continue;
                         }
@@ -154,7 +155,7 @@ public class MineField {
                 }
             }
         }
-
+        return !mineUncovered;
     }
 
 }

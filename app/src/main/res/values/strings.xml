@@ -3,4 +3,9 @@
     <string name="button_start">Start</string>
     <string name="number_of_bombs">000</string>
     <string name="time_passed">000</string>
+    <string name="choose_difficulty">Choose Difficulty</string>
+    <string name="popup_text">Are you sure you want to exit?</string>
+    <string name="win_text">You Win!</string>
+    <string name="replay">Play again?</string>
+    <string name="lose_text">You Lose!</string>
 </resources>
